@@ -1,0 +1,19 @@
+name: setup-python-pdm
+description: Set up Python and PDM with caching
+
+inputs:
+  python-version:
+    required: true
+    description: Python version to install
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - uses: pdm-project/setup-pdm@v4
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: true
