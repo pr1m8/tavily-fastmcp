@@ -1,0 +1,15 @@
+.DS_Store
+.env
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+coverage.xml
+dist/
+build/
+site/
+docs/source/_build/
+*.py[cod]
+__pycache__/
