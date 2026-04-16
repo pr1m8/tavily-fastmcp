@@ -18,30 +18,23 @@ Examples:
 from __future__ import annotations
 
 import argparse
-import json
-from typing import Annotated, Any
+from typing import Any
 
-from pydantic import Field
-
-from tavily_fastmcp.models import (
-    CrawlRequest,
-    CrawlResponse,
-    ExtractRequest,
-    ExtractResponse,
-    GetResearchRequest,
-    HealthResponse,
-    MapRequest,
-    MapResponse,
-    ResearchRequest,
-    ResearchResponse,
-    SearchRequest,
-    SearchResponse,
-    ServerCatalog,
-)
+from tavily_fastmcp.models import ServerCatalog
 from tavily_fastmcp.prompt_loader import list_prompt_names, load_prompt_text
 from tavily_fastmcp.profiles import RESOURCE_PREFIX, list_profiles, load_profile, profile_to_markdown
 from tavily_fastmcp.service import LangChainTavilyService, TavilyServiceProtocol
 from tavily_fastmcp.settings import Settings, get_settings
+from tavily_fastmcp.tools import (
+    register_catalog_tool,
+    register_crawl_tool,
+    register_extract_tool,
+    register_get_research_tool,
+    register_health_tool,
+    register_map_tool,
+    register_research_tool,
+    register_search_tool,
+)
 
 PACKAGE_NAME = "tavily-fastmcp"
 PACKAGE_VERSION = "0.3.0"
@@ -321,270 +314,14 @@ def create_server(
             f"{user_request}\n"
         )
 
-    @mcp.tool(
-        name="tavily.health",
-        title="Tavily Health",
-        description="Return package and server health metadata.",
-        tags={"health", "server", "readonly"},
-        annotations={
-            "title": "Tavily Health",
-            "readOnlyHint": True,
-            "openWorldHint": False,
-            "idempotentHint": True,
-        },
-        meta={"component": "server", "version": PACKAGE_VERSION},
-    )
-    async def tavily_health(ctx: Context | None = None) -> HealthResponse:
-        """Return a simple health payload.
-
-        Args:
-            ctx: Optional FastMCP context.
-
-        Returns:
-            A health response.
-
-        Raises:
-            RuntimeError: Never raised intentionally.
-
-        Examples:
-            .. code-block:: python
-
-                await client.call_tool("tavily.health")
-        """
-        if ctx is not None:
-            await ctx.info("Health check requested.")
-        return HealthResponse(status="ok", server_name=SERVER_NAME, version=PACKAGE_VERSION)
-
-    @mcp.tool(
-        name="tavily.catalog",
-        title="Tavily Catalog",
-        description="Return the structured server catalog that describes tools, resources, and prompts.",
-        tags={"catalog", "server", "readonly"},
-        annotations={
-            "title": "Tavily Catalog",
-            "readOnlyHint": True,
-            "openWorldHint": False,
-            "idempotentHint": True,
-        },
-        meta={"component": "catalog", "version": PACKAGE_VERSION},
-    )
-    async def tavily_catalog(ctx: Context | None = None) -> ServerCatalog:
-        """Return the structured server catalog."""
-        if ctx is not None:
-            await ctx.info("Server catalog requested.")
-        return catalog
-
-    @mcp.tool(
-        name="tavily.search",
-        title="Tavily Search",
-        description="Search the web when relevant URLs are not yet known.",
-        tags={"search", "web", "readonly"},
-        annotations={
-            "title": "Tavily Search",
-            "readOnlyHint": True,
-            "openWorldHint": True,
-            "idempotentHint": True,
-        },
-        meta={"profile_hints": ["router", "quick-search"]},
-    )
-    async def tavily_search(
-        query: Annotated[str, Field(description="Natural-language web search query.")],
-        max_results: Annotated[int, Field(ge=1, le=20, description="Maximum number of results.")] = 5,
-        topic: Annotated[str, Field(description="Search topic mode.")] = app_settings.default_search_topic,
-        include_answer: Annotated[bool, Field(description="Include Tavily's answer field.")] = False,
-        include_raw_content: Annotated[bool, Field(description="Include cleaned page content.")] = False,
-        include_images: Annotated[bool, Field(description="Include image URLs.")] = False,
-        include_image_descriptions: Annotated[bool, Field(description="Include image descriptions.")] = False,
-        search_depth: Annotated[str, Field(description="Tavily search depth.")] = app_settings.default_search_depth,
-        time_range: Annotated[str | None, Field(description="Relative publish-date filter.")] = None,
-        start_date: Annotated[str | None, Field(description="Inclusive start date in YYYY-MM-DD format.")] = None,
-        end_date: Annotated[str | None, Field(description="Inclusive end date in YYYY-MM-DD format.")] = None,
-        include_domains: Annotated[list[str] | None, Field(description="Domains to include.")] = None,
-        exclude_domains: Annotated[list[str] | None, Field(description="Domains to exclude.")] = None,
-        include_usage: Annotated[bool, Field(description="Include usage metadata.")] = False,
-        ctx: Context | None = None,
-    ) -> SearchResponse:
-        """Search the public web using Tavily.
-
-        Args:
-            query: Natural-language search query.
-            max_results: Maximum number of results.
-            topic: Tavily topic mode.
-            include_answer: Whether to include Tavily's answer summary.
-            include_raw_content: Whether to include raw page content.
-            include_images: Whether to include image URLs.
-            include_image_descriptions: Whether to include image descriptions.
-            search_depth: Tavily search depth.
-            time_range: Relative time filter.
-            start_date: Inclusive start date.
-            end_date: Inclusive end date.
-            include_domains: Domains to include.
-            exclude_domains: Domains to exclude.
-            include_usage: Whether to include usage metadata.
-            ctx: Optional FastMCP context.
-
-        Returns:
-            A normalized Tavily search response.
-
-        Raises:
-            RuntimeError: If the Tavily backend cannot execute the request.
-
-        Examples:
-            .. code-block:: python
-
-                await client.call_tool(
-                    "tavily.search",
-                    {"query": "latest FastMCP docs", "max_results": 3},
-                )
-        """
-        request = SearchRequest(
-            query=query,
-            max_results=max_results,
-            topic=topic,
-            include_answer=include_answer,
-            include_raw_content=include_raw_content,
-            include_images=include_images,
-            include_image_descriptions=include_image_descriptions,
-            search_depth=search_depth,
-            time_range=time_range,
-            start_date=start_date,
-            end_date=end_date,
-            include_domains=include_domains,
-            exclude_domains=exclude_domains,
-            include_usage=include_usage,
-        )
-        if ctx is not None:
-            await ctx.info(f"Executing Tavily search for query: {query}")
-        return backend.search_from_model(request)
-
-    @mcp.tool(
-        name="tavily.extract",
-        title="Tavily Extract",
-        description="Extract content from specific known URLs.",
-        tags={"extract", "url-first", "readonly"},
-        annotations={
-            "title": "Tavily Extract",
-            "readOnlyHint": True,
-            "openWorldHint": True,
-            "idempotentHint": True,
-        },
-        meta={"profile_hints": ["extract-and-summarize", "quick-search"]},
-    )
-    async def tavily_extract(
-        urls: Annotated[list[str], Field(description="URLs to extract.", min_length=1)],
-        extract_depth: Annotated[str, Field(description="Extraction depth.")] = "basic",
-        include_images: Annotated[bool, Field(description="Include image metadata.")] = False,
-        ctx: Context | None = None,
-    ) -> ExtractResponse:
-        """Extract content from known URLs."""
-        request = ExtractRequest(urls=urls, extract_depth=extract_depth, include_images=include_images)
-        if ctx is not None:
-            await ctx.info(f"Extracting content from {len(urls)} URL(s).")
-        return backend.extract_from_model(request)
-
-    @mcp.tool(
-        name="tavily.map",
-        title="Tavily Map",
-        description="Discover site structure and candidate URLs on a single domain.",
-        tags={"map", "site", "readonly"},
-        annotations={
-            "title": "Tavily Map",
-            "readOnlyHint": True,
-            "openWorldHint": True,
-            "idempotentHint": True,
-        },
-        meta={"profile_hints": ["site-discovery"]},
-    )
-    async def tavily_map(
-        url: Annotated[str, Field(description="Root URL to begin mapping.")],
-        instructions: Annotated[str | None, Field(description="Optional mapping guidance.")] = None,
-        ctx: Context | None = None,
-    ) -> MapResponse:
-        """Map a site to discover likely relevant URLs."""
-        request = MapRequest(url=url, instructions=instructions)
-        if ctx is not None:
-            await ctx.info(f"Mapping site: {url}")
-        return backend.map_from_model(request)
-
-    @mcp.tool(
-        name="tavily.crawl",
-        title="Tavily Crawl",
-        description="Crawl one site and retrieve content from multiple pages.",
-        tags={"crawl", "site", "readonly"},
-        annotations={
-            "title": "Tavily Crawl",
-            "readOnlyHint": True,
-            "openWorldHint": True,
-            "idempotentHint": True,
-        },
-        meta={"profile_hints": ["site-crawl"]},
-    )
-    async def tavily_crawl(
-        url: Annotated[str, Field(description="Root URL to begin crawling.")],
-        instructions: Annotated[str | None, Field(description="Optional crawling guidance.")] = None,
-        ctx: Context | None = None,
-    ) -> CrawlResponse:
-        """Crawl a site and retrieve multi-page content."""
-        request = CrawlRequest(url=url, instructions=instructions)
-        if ctx is not None:
-            await ctx.info(f"Crawling site: {url}")
-        return backend.crawl_from_model(request)
-
-    @mcp.tool(
-        name="tavily.research",
-        title="Tavily Research",
-        description="Create a deep multi-source Tavily research task.",
-        tags={"research", "report", "readonly"},
-        annotations={
-            "title": "Tavily Research",
-            "readOnlyHint": True,
-            "openWorldHint": True,
-            "idempotentHint": False,
-        },
-        meta={"profile_hints": ["deep-research"]},
-    )
-    async def tavily_research(
-        input: Annotated[str, Field(description="Research task or question.")],
-        model: Annotated[str, Field(description="Research model.")] = "auto",
-        citation_format: Annotated[str, Field(description="Citation format.")] = "numbered",
-        stream: Annotated[bool, Field(description="Whether Tavily should stream results.")] = False,
-        output_schema: Annotated[dict[str, Any] | None, Field(description="Optional JSON schema for structured output.")] = None,
-        ctx: Context | None = None,
-    ) -> ResearchResponse:
-        """Create a Tavily research task."""
-        request = ResearchRequest(
-            input=input,
-            model=model,
-            citation_format=citation_format,
-            stream=stream,
-            output_schema=output_schema,
-        )
-        if ctx is not None:
-            await ctx.info(f"Starting research task with model={model}.")
-        return backend.research_from_model(request)
-
-    @mcp.tool(
-        name="tavily.get_research",
-        title="Tavily Get Research",
-        description="Retrieve the status or result of an existing Tavily research task.",
-        tags={"research", "status", "readonly"},
-        annotations={
-            "title": "Tavily Get Research",
-            "readOnlyHint": True,
-            "openWorldHint": True,
-            "idempotentHint": True,
-        },
-        meta={"profile_hints": ["deep-research"]},
-    )
-    async def tavily_get_research(
-        request_id: Annotated[str, Field(description="Tavily research request identifier.")],
-        ctx: Context | None = None,
-    ) -> ResearchResponse:
-        """Retrieve a Tavily research task by request ID."""
-        request = GetResearchRequest(request_id=request_id)
-        if ctx is not None:
-            await ctx.info(f"Fetching research task: {request_id}")
-        return backend.get_research_from_model(request)
+    register_health_tool(mcp, server_name=SERVER_NAME, package_version=PACKAGE_VERSION)
+    register_catalog_tool(mcp, catalog=catalog, package_version=PACKAGE_VERSION)
+    register_search_tool(mcp, backend=backend, settings=app_settings)
+    register_extract_tool(mcp, backend=backend)
+    register_map_tool(mcp, backend=backend)
+    register_crawl_tool(mcp, backend=backend)
+    register_research_tool(mcp, backend=backend)
+    register_get_research_tool(mcp, backend=backend)
 
     return mcp
 
