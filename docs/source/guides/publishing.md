@@ -10,16 +10,20 @@ publishing, not from a developer laptop.
    repository `pr1m8/tavily-fastmcp` and workflow file `release.yml`. Leave the
    PyPI environment field blank unless the workflow defines a GitHub
    environment.
-3. Run the local publish gate:
+3. If trusted publishing is not available yet, create a project-scoped PyPI API
+   token and save it as the GitHub repository secret `PYPI_API_TOKEN`. The
+   release workflow uses this token first when present, then falls back to
+   trusted publishing.
+4. Run the local publish gate:
 
    ```bash
    make publish-check
    ```
 
-4. Update the package version in `pyproject.toml` and `src/tavily_fastmcp/server.py`.
-5. Commit the release changes and create a tag such as `v0.3.1`.
-6. Push the branch and tag.
-7. Publish a GitHub Release for the tag. The `Release` workflow builds and
+5. Update the package version in `pyproject.toml` and `src/tavily_fastmcp/server.py`.
+6. Commit the release changes and create a tag such as `v0.3.1`.
+7. Push the branch and tag.
+8. Publish a GitHub Release for the tag. The `Release` workflow builds and
    uploads distributions to PyPI.
 
 ## Manual build

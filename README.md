@@ -133,6 +133,59 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+### Build a focused research agent
+
+Use MCP when you want the model to choose among Tavily search, extract, map,
+crawl, and research tools at runtime:
+
+```python
+import asyncio
+
+from langchain.agents import create_agent
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+
+async def build_agent():
+    client = MultiServerMCPClient(
+        {
+            "tavily": {
+                "transport": "stdio",
+                "command": "python",
+                "args": ["-m", "tavily_fastmcp.server", "--transport", "stdio"],
+                "env": {"TAVILY_API_KEY": "tvly-your-key-here"},
+            }
+        }
+    )
+    tools = await client.get_tools()
+    return create_agent(
+        model="openai:gpt-5",
+        tools=tools,
+        system_prompt=(
+            "Use Tavily for current web research. Prefer tavily.search for broad "
+            "discovery, tavily.extract for source reading, and tavily.research "
+            "when a synthesized report is requested."
+        ),
+    )
+
+
+async def main() -> None:
+    agent = await build_agent()
+    result = await agent.ainvoke(
+        {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "Compare three recent MCP client patterns and cite sources.",
+                }
+            ]
+        }
+    )
+    print(result)
+
+
+asyncio.run(main())
+```
+
 ## Included profiles and prompts
 
 The package ships with large markdown prompts and reusable profiles for:
@@ -181,6 +234,43 @@ The server is organized so MCP clients can discover tools, prompts, resources, e
 All tools use typed arguments, tags, annotations, titles, and custom metadata.
 
 ## MCP client examples
+
+### Claude Code project setup
+
+Claude Code can run this package as a local stdio MCP server. Keep the Tavily
+key in your shell or project secret manager, then add the server:
+
+```bash
+export TAVILY_API_KEY="tvly-your-key-here"
+claude mcp add tavily-fastmcp --scope project \
+  --env TAVILY_API_KEY="$TAVILY_API_KEY" \
+  -- python -m tavily_fastmcp.server --transport stdio
+```
+
+Useful checks:
+
+```bash
+claude mcp list
+claude mcp get tavily-fastmcp
+```
+
+For a checked-in Claude Code project config, use `.mcp.json` with environment
+expansion so secrets stay outside Git:
+
+```json
+{
+  "mcpServers": {
+    "tavily-fastmcp": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["-m", "tavily_fastmcp.server", "--transport", "stdio"],
+      "env": {
+        "TAVILY_API_KEY": "${TAVILY_API_KEY}"
+      }
+    }
+  }
+}
+```
 
 ### Claude Desktop config snippet
 
@@ -255,6 +345,9 @@ Publishing is intended to run through GitHub Releases and PyPI trusted publishin
 Configure the PyPI trusted publisher for repository `pr1m8/tavily-fastmcp` and
 workflow file `release.yml`; leave the environment field blank unless the
 workflow defines one.
+If PyPI trusted publishing is not ready yet, add a project-scoped token as the
+GitHub secret `PYPI_API_TOKEN`; the release workflow will use it before falling
+back to OIDC.
 Use the local publish gate before tagging:
 
 ```bash

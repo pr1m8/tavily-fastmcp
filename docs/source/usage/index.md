@@ -5,5 +5,6 @@
 
 direct-python
 mcp-server
+claude-code
 langchain
 ```
