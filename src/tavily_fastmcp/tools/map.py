@@ -10,10 +10,11 @@ Design:
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 from pydantic import Field
 
+from tavily_fastmcp._typing import ToolRegistrar
 from tavily_fastmcp.models import MapRequest, MapResponse
 from tavily_fastmcp.service import TavilyServiceProtocol
 
@@ -28,8 +29,9 @@ def register_map_tool(mcp: Any, *, backend: TavilyServiceProtocol) -> None:
     Returns:
         ``None``.
     """
+    tool_server = cast(ToolRegistrar, mcp)
 
-    @mcp.tool(
+    @tool_server.tool(
         name="tavily.map",
         title="Tavily Map",
         description="Discover site structure and candidate URLs on a single domain.",
@@ -57,7 +59,7 @@ def register_map_tool(mcp: Any, *, backend: TavilyServiceProtocol) -> None:
         Returns:
             A normalized Tavily map response.
         """
-        request = MapRequest(url=url, instructions=instructions)
+        request = MapRequest.model_validate({"url": url, "instructions": instructions})
         if ctx is not None:
             await ctx.info(f"Mapping site: {url}")
         return backend.map_from_model(request)

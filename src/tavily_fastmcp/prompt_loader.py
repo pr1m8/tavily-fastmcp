@@ -34,7 +34,9 @@ def list_prompt_names() -> list[str]:
         True
     """
     prompt_dir = files("tavily_fastmcp.prompts")
-    return sorted(path.stem for path in prompt_dir.iterdir() if path.suffix == ".md")
+    return sorted(
+        path.name.removesuffix(".md") for path in prompt_dir.iterdir() if path.name.endswith(".md")
+    )
 
 
 def load_prompt_text(name: str) -> str:

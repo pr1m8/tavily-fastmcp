@@ -10,6 +10,7 @@ overview
 installation
 usage/index
 guides/index
+reference/index
 api
 contributing
 ```

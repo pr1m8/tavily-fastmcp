@@ -10,10 +10,11 @@ Design:
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 from pydantic import Field
 
+from tavily_fastmcp._typing import ToolRegistrar
 from tavily_fastmcp.models import ResearchRequest, ResearchResponse
 from tavily_fastmcp.service import TavilyServiceProtocol
 
@@ -28,8 +29,9 @@ def register_research_tool(mcp: Any, *, backend: TavilyServiceProtocol) -> None:
     Returns:
         ``None``.
     """
+    tool_server = cast(ToolRegistrar, mcp)
 
-    @mcp.tool(
+    @tool_server.tool(
         name="tavily.research",
         title="Tavily Research",
         description="Create a deep multi-source Tavily research task.",
@@ -47,7 +49,9 @@ def register_research_tool(mcp: Any, *, backend: TavilyServiceProtocol) -> None:
         model: Annotated[str, Field(description="Research model.")] = "auto",
         citation_format: Annotated[str, Field(description="Citation format.")] = "numbered",
         stream: Annotated[bool, Field(description="Whether Tavily should stream results.")] = False,
-        output_schema: Annotated[dict[str, Any] | None, Field(description="Optional JSON schema for structured output.")] = None,
+        output_schema: Annotated[
+            dict[str, Any] | None, Field(description="Optional JSON schema for structured output.")
+        ] = None,
         ctx: Any | None = None,
     ) -> ResearchResponse:
         """Create a Tavily research task.
@@ -63,12 +67,14 @@ def register_research_tool(mcp: Any, *, backend: TavilyServiceProtocol) -> None:
         Returns:
             A normalized Tavily research response.
         """
-        request = ResearchRequest(
-            input=input,
-            model=model,
-            citation_format=citation_format,
-            stream=stream,
-            output_schema=output_schema,
+        request = ResearchRequest.model_validate(
+            {
+                "input": input,
+                "model": model,
+                "citation_format": citation_format,
+                "stream": stream,
+                "output_schema": output_schema,
+            }
         )
         if ctx is not None:
             await ctx.info(f"Starting research task with model={model}.")

@@ -11,8 +11,9 @@ Design:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
+from tavily_fastmcp._typing import ToolRegistrar
 from tavily_fastmcp.models import HealthResponse
 
 
@@ -31,8 +32,9 @@ def register_health_tool(mcp: Any, *, server_name: str, package_version: str) ->
         >>> callable(register_health_tool)
         True
     """
+    tool_server = cast(ToolRegistrar, mcp)
 
-    @mcp.tool(
+    @tool_server.tool(
         name="tavily.health",
         title="Tavily Health",
         description="Return package and server health metadata.",

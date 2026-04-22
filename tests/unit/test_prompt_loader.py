@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from tavily_fastmcp.prompt_loader import list_prompt_names, load_prompt_text
 
-
 _EXPECTED_PROMPTS = {
     "router",
     "quick_search",

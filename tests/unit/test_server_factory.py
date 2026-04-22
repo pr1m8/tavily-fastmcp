@@ -46,22 +46,34 @@ class _FakeFastMCP:
         def decorator(func):
             self.resources.append(types.SimpleNamespace(func=func, **metadata))
             return func
+
         return decorator
 
     def prompt(self, **metadata):
         def decorator(func):
             self.prompts.append(types.SimpleNamespace(func=func, **metadata))
             return func
+
         return decorator
 
     def tool(self, **metadata):
         def decorator(func):
             self.tools.append(types.SimpleNamespace(func=func, **metadata))
             return func
+
         return decorator
 
     def run(self, transport: str) -> None:
         self.last_run_transport = transport
+
+
+class _FakeFastMCPWithoutMeta(_FakeFastMCP):
+    """Server shim that emulates newer FastMCP constructors."""
+
+    def __init__(self, name: str, instructions: str, **kwargs) -> None:
+        if "include_fastmcp_meta" in kwargs:
+            raise TypeError("FastMCP() got unexpected keyword argument(s): 'include_fastmcp_meta'")
+        super().__init__(name=name, instructions=instructions, include_fastmcp_meta=False)
 
 
 class _FakeService:
@@ -116,8 +128,12 @@ async def test_create_server_registers_resources_prompts_and_tools(fake_fastmcp)
     catalog_tool = next(entry for entry in server.tools if entry.name == "tavily.catalog")
     search_tool = next(entry for entry in server.tools if entry.name == "tavily.search")
     profile_prompt = next(entry for entry in server.prompts if entry.name == "tavily-profile")
-    profile_resource = next(entry for entry in server.resources if entry.uri.endswith("/profile/{slug}"))
-    prompt_resource = next(entry for entry in server.resources if entry.uri.endswith("/prompt/{name}"))
+    profile_resource = next(
+        entry for entry in server.resources if entry.uri.endswith("/profile/{slug}")
+    )
+    prompt_resource = next(
+        entry for entry in server.resources if entry.uri.endswith("/prompt/{name}")
+    )
 
     ctx = _FakeContext()
     health = await health_tool.func(ctx=ctx)
@@ -138,7 +154,24 @@ def test_create_server_raises_when_fastmcp_missing(monkeypatch) -> None:
     """Server factory should raise a friendly error when FastMCP is unavailable."""
     monkeypatch.setitem(sys.modules, "fastmcp", None)
     with pytest.raises(RuntimeError):
-        create_server(settings=Settings.model_construct(tavily_api_key="dummy", transport="stdio"), service=_FakeService())
+        create_server(
+            settings=Settings.model_construct(tavily_api_key="dummy", transport="stdio"),
+            service=_FakeService(),
+        )
+
+
+def test_create_server_supports_fastmcp_without_meta_kwarg(monkeypatch) -> None:
+    """Server factory should tolerate FastMCP versions without include_fastmcp_meta."""
+    fake_module = types.SimpleNamespace(FastMCP=_FakeFastMCPWithoutMeta, Context=_FakeContext)
+    monkeypatch.setitem(sys.modules, "fastmcp", fake_module)
+
+    server = create_server(
+        settings=Settings.model_construct(tavily_api_key="dummy", transport="stdio"),
+        service=_FakeService(),
+    )
+
+    assert server.include_fastmcp_meta is False
+    assert {entry.name for entry in server.tools}
 
 
 def test_build_arg_parser_and_main(fake_fastmcp, monkeypatch) -> None:
@@ -147,7 +180,10 @@ def test_build_arg_parser_and_main(fake_fastmcp, monkeypatch) -> None:
     assert parser.parse_args(["--transport", "stdio"]).transport == "stdio"
 
     fake_server = _FakeFastMCP(name="x", instructions="y", include_fastmcp_meta=True)
-    monkeypatch.setattr("tavily_fastmcp.server.get_settings", lambda: Settings.model_construct(tavily_api_key="dummy", transport="stdio"))
+    monkeypatch.setattr(
+        "tavily_fastmcp.server.get_settings",
+        lambda: Settings.model_construct(tavily_api_key="dummy", transport="stdio"),
+    )
     monkeypatch.setattr("tavily_fastmcp.server.create_server", lambda settings=None: fake_server)
     monkeypatch.setattr(sys, "argv", ["tavily-fastmcp", "--transport", "http"])
     main()

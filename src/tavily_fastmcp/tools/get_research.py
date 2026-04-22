@@ -10,10 +10,11 @@ Design:
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 from pydantic import Field
 
+from tavily_fastmcp._typing import ToolRegistrar
 from tavily_fastmcp.models import GetResearchRequest, ResearchResponse
 from tavily_fastmcp.service import TavilyServiceProtocol
 
@@ -28,8 +29,9 @@ def register_get_research_tool(mcp: Any, *, backend: TavilyServiceProtocol) -> N
     Returns:
         ``None``.
     """
+    tool_server = cast(ToolRegistrar, mcp)
 
-    @mcp.tool(
+    @tool_server.tool(
         name="tavily.get_research",
         title="Tavily Get Research",
         description="Retrieve the status or result of an existing Tavily research task.",

@@ -21,8 +21,8 @@ import argparse
 from typing import Any
 
 from tavily_fastmcp.models import ServerCatalog
+from tavily_fastmcp.profiles import RESOURCE_PREFIX, list_profiles, load_profile
 from tavily_fastmcp.prompt_loader import list_prompt_names, load_prompt_text
-from tavily_fastmcp.profiles import RESOURCE_PREFIX, list_profiles, load_profile, profile_to_markdown
 from tavily_fastmcp.service import LangChainTavilyService, TavilyServiceProtocol
 from tavily_fastmcp.settings import Settings, get_settings
 from tavily_fastmcp.tools import (
@@ -107,7 +107,7 @@ def create_server(
         True
     """
     try:
-        from fastmcp import Context, FastMCP
+        from fastmcp import FastMCP
     except ImportError as exc:  # pragma: no cover - dependency dependent
         raise RuntimeError(
             "FastMCP is required to create the server. Install package dependencies first."
@@ -118,11 +118,18 @@ def create_server(
     router_prompt = load_prompt_text(ROUTER_PROMPT_NAME)
     catalog = _build_catalog()
 
-    mcp = FastMCP(
-        name=SERVER_NAME,
-        instructions=router_prompt,
-        include_fastmcp_meta=True,
-    )
+    mcp_kwargs: dict[str, Any] = {
+        "name": SERVER_NAME,
+        "instructions": router_prompt,
+        "include_fastmcp_meta": True,
+    }
+    try:
+        mcp = FastMCP(**mcp_kwargs)
+    except TypeError as exc:
+        if "include_fastmcp_meta" not in str(exc):
+            raise
+        mcp_kwargs.pop("include_fastmcp_meta")
+        mcp = FastMCP(**mcp_kwargs)
 
     @mcp.resource(
         uri=f"{RESOURCE_PREFIX}/catalog/server",
@@ -266,7 +273,7 @@ def create_server(
         meta={"prompt_file": "router.md"},
     )
     def tavily_router_prompt(user_request: str) -> str:
-        """Render the main router prompt for a user request.
+        r"""Render the main router prompt for a user request.
 
         Args:
             user_request: User request appended after the router instructions.
@@ -308,11 +315,7 @@ def create_server(
             'quick-search'
         """
         profile = load_profile(profile_slug)
-        return (
-            f"{profile.prompt_markdown}\n\n"
-            "## Bound request\n\n"
-            f"{user_request}\n"
-        )
+        return f"{profile.prompt_markdown}\n\n## Bound request\n\n{user_request}\n"
 
     register_health_tool(mcp, server_name=SERVER_NAME, package_version=PACKAGE_VERSION)
     register_catalog_tool(mcp, catalog=catalog, package_version=PACKAGE_VERSION)

@@ -21,8 +21,8 @@ Examples:
     True
 """
 
-from tavily_fastmcp.prompt_loader import list_prompt_names, load_prompt_text
 from tavily_fastmcp.profiles import list_profiles, load_profile, profile_to_markdown
+from tavily_fastmcp.prompt_loader import list_prompt_names, load_prompt_text
 from tavily_fastmcp.server import create_server
 from tavily_fastmcp.service import LangChainTavilyService
 from tavily_fastmcp.settings import Settings, get_settings

@@ -19,17 +19,39 @@ class _StubTool:
         return self.result
 
 
+class _StubSearchFactory:
+    """Factory stub that records constructor-only Tavily search settings."""
+
+    def __init__(self, result: dict[str, Any]) -> None:
+        self.result = result
+        self.constructor_calls: list[dict[str, Any]] = []
+        self.tools: list[_StubTool] = []
+
+    def __call__(self, **kwargs: Any) -> _StubTool:
+        self.constructor_calls.append(kwargs)
+        tool = _StubTool(self.result)
+        self.tools.append(tool)
+        return tool
+
 
 def _make_service() -> LangChainTavilyService:
     service = LangChainTavilyService.__new__(LangChainTavilyService)
     service._search_tool = _StubTool({"results": [{"url": "https://example.com"}]})
-    service._extract_tool = _StubTool({"results": [{"url": "https://example.com", "raw_content": "x"}]})
-    service._map_tool = _StubTool({"base_url": "https://example.com", "results": ["https://example.com/docs"]})
-    service._crawl_tool = _StubTool({"base_url": "https://example.com", "results": [{"url": "https://example.com/docs", "raw_content": "docs"}]})
+    service._extract_tool = _StubTool(
+        {"results": [{"url": "https://example.com", "raw_content": "x"}]}
+    )
+    service._map_tool = _StubTool(
+        {"base_url": "https://example.com", "results": ["https://example.com/docs"]}
+    )
+    service._crawl_tool = _StubTool(
+        {
+            "base_url": "https://example.com",
+            "results": [{"url": "https://example.com/docs", "raw_content": "docs"}],
+        }
+    )
     service._research_tool = _StubTool({"request_id": "req_1", "status": "submitted"})
     service._get_research_tool = _StubTool({"request_id": "req_1", "status": "completed"})
     return service
-
 
 
 def test_search_from_model_invokes_underlying_tool() -> None:
@@ -41,6 +63,29 @@ def test_search_from_model_invokes_underlying_tool() -> None:
     assert response.results[0].url == "https://example.com"
 
 
+def test_search_from_model_uses_constructor_only_options() -> None:
+    """Search method should keep langchain-tavily constructor-only options out of invoke."""
+    service = LangChainTavilyService.__new__(LangChainTavilyService)
+    factory = _StubSearchFactory({"results": [{"url": "https://example.com"}]})
+    service._search_tool_cls = factory
+
+    response = service.search_from_model(
+        query="fastmcp",
+        max_results=2,
+        include_answer=True,
+        include_raw_content=True,
+        include_image_descriptions=True,
+        include_usage=True,
+    )
+
+    assert factory.constructor_calls[0]["max_results"] == 2
+    assert factory.constructor_calls[0]["include_answer"] is True
+    assert factory.constructor_calls[0]["include_raw_content"] is True
+    assert factory.constructor_calls[0]["include_image_descriptions"] is True
+    assert factory.constructor_calls[0]["include_usage"] is True
+    assert "max_results" not in factory.tools[0].calls[0]
+    assert response.results[0].url == "https://example.com"
+
 
 def test_extract_from_model_invokes_underlying_tool() -> None:
     """Extract method should serialize URLs and return normalized results."""
@@ -48,7 +93,6 @@ def test_extract_from_model_invokes_underlying_tool() -> None:
     response = service.extract_from_model(urls=["https://example.com"])
     assert service._extract_tool.calls[0]["urls"] == ["https://example.com/"]
     assert response.results[0].raw_content == "x"
-
 
 
 def test_map_crawl_and_research_methods_invoke_tools() -> None:

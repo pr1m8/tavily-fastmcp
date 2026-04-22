@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from tavily_fastmcp.profiles import list_profiles, load_profile, profile_to_markdown
 
-
 EXPECTED_PROFILE_SLUGS = {
     "router",
     "suite-overview",

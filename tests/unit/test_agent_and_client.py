@@ -14,7 +14,7 @@ from tavily_fastmcp.client import iter_component_names
 class _FakeAsyncClient:
     """Tiny fake async client for component introspection tests."""
 
-    async def __aenter__(self) -> "_FakeAsyncClient":
+    async def __aenter__(self) -> _FakeAsyncClient:
         return self
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
@@ -51,7 +51,9 @@ def test_create_langchain_agent_uses_router_prompt(monkeypatch) -> None:
     """Agent helper should pass the packaged router prompt into create_agent."""
     captured: dict[str, object] = {}
 
-    def fake_create_agent(*, model: str, tools: list[object], system_prompt: str) -> dict[str, object]:
+    def fake_create_agent(
+        *, model: str, tools: list[object], system_prompt: str
+    ) -> dict[str, object]:
         captured["model"] = model
         captured["tools"] = tools
         captured["system_prompt"] = system_prompt

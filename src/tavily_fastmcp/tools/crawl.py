@@ -10,10 +10,11 @@ Design:
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 from pydantic import Field
 
+from tavily_fastmcp._typing import ToolRegistrar
 from tavily_fastmcp.models import CrawlRequest, CrawlResponse
 from tavily_fastmcp.service import TavilyServiceProtocol
 
@@ -28,8 +29,9 @@ def register_crawl_tool(mcp: Any, *, backend: TavilyServiceProtocol) -> None:
     Returns:
         ``None``.
     """
+    tool_server = cast(ToolRegistrar, mcp)
 
-    @mcp.tool(
+    @tool_server.tool(
         name="tavily.crawl",
         title="Tavily Crawl",
         description="Traverse a site and retrieve multi-page content.",
@@ -44,7 +46,9 @@ def register_crawl_tool(mcp: Any, *, backend: TavilyServiceProtocol) -> None:
     )
     async def tavily_crawl(
         url: Annotated[str, Field(description="Root URL to begin crawling.")],
-        instructions: Annotated[str | None, Field(description="Optional crawling guidance.")] = None,
+        instructions: Annotated[
+            str | None, Field(description="Optional crawling guidance.")
+        ] = None,
         ctx: Any | None = None,
     ) -> CrawlResponse:
         """Crawl a site and retrieve multi-page content.
@@ -57,7 +61,7 @@ def register_crawl_tool(mcp: Any, *, backend: TavilyServiceProtocol) -> None:
         Returns:
             A normalized Tavily crawl response.
         """
-        request = CrawlRequest(url=url, instructions=instructions)
+        request = CrawlRequest.model_validate({"url": url, "instructions": instructions})
         if ctx is not None:
             await ctx.info(f"Crawling site: {url}")
         return backend.crawl_from_model(request)

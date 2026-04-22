@@ -5,7 +5,6 @@ from __future__ import annotations
 from tavily_fastmcp.settings import Settings
 
 
-
 def test_settings_alias_model_construct() -> None:
     """Settings should support model construction for tests."""
     settings = Settings.model_construct(tavily_api_key="dummy", transport="stdio")

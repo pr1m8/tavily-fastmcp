@@ -5,7 +5,6 @@ from __future__ import annotations
 from tavily_fastmcp.server import _build_catalog
 
 
-
 def test_catalog_contains_namespaced_tools() -> None:
     """The catalog should expose namespaced tools."""
     catalog = _build_catalog()

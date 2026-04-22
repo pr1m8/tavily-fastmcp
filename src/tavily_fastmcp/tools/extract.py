@@ -10,10 +10,11 @@ Design:
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 from pydantic import Field
 
+from tavily_fastmcp._typing import ToolRegistrar
 from tavily_fastmcp.models import ExtractRequest, ExtractResponse
 from tavily_fastmcp.service import TavilyServiceProtocol
 
@@ -28,8 +29,9 @@ def register_extract_tool(mcp: Any, *, backend: TavilyServiceProtocol) -> None:
     Returns:
         ``None``.
     """
+    tool_server = cast(ToolRegistrar, mcp)
 
-    @mcp.tool(
+    @tool_server.tool(
         name="tavily.extract",
         title="Tavily Extract",
         description="Extract content from specific known URLs.",
@@ -59,7 +61,9 @@ def register_extract_tool(mcp: Any, *, backend: TavilyServiceProtocol) -> None:
         Returns:
             A normalized Tavily extract response.
         """
-        request = ExtractRequest(urls=urls, extract_depth=extract_depth, include_images=include_images)
+        request = ExtractRequest.model_validate(
+            {"urls": urls, "extract_depth": extract_depth, "include_images": include_images}
+        )
         if ctx is not None:
             await ctx.info(f"Extracting content from {len(urls)} URL(s).")
         return backend.extract_from_model(request)

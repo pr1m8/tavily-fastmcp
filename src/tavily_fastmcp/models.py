@@ -23,7 +23,6 @@ from typing import Any, Literal
 
 from pydantic import AnyUrl, BaseModel, ConfigDict, Field
 
-
 type JsonObject = dict[str, Any]
 
 

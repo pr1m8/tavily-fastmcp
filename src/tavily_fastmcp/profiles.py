@@ -21,15 +21,33 @@ Examples:
 
 from __future__ import annotations
 
+from typing import Any, TypedDict
+
 from tavily_fastmcp.models import ProfileSummary, PromptProfile
 from tavily_fastmcp.prompt_loader import load_prompt_text
 
 RESOURCE_PREFIX = "resource://tavily-fastmcp"
 
-_PROFILE_DATA: dict[str, dict[str, object]] = {
+
+class _ProfileData(TypedDict):
+    """Static metadata for a packaged prompt profile."""
+
+    title: str
+    summary: str
+    use_when: list[str]
+    avoid_when: list[str]
+    recommended_tools: list[str]
+    tags: list[str]
+    meta: dict[str, Any]
+    prompt_name: str
+
+
+_PROFILE_DATA: dict[str, _ProfileData] = {
     "router": {
         "title": "Tavily Router",
-        "summary": "General-purpose routing profile that chooses the smallest correct Tavily workflow.",
+        "summary": (
+            "General-purpose routing profile that chooses the smallest correct Tavily workflow."
+        ),
         "use_when": [
             "The user request is general and you need to choose the right Tavily capability.",
             "You want a system prompt that strongly discourages wasteful or redundant tool use.",
@@ -82,9 +100,12 @@ _PROFILE_DATA: dict[str, dict[str, object]] = {
     },
     "tool-search": {
         "title": "Search Tool Guide",
-        "summary": "Deep operational guide for Tavily web search as the suite's discovery primitive.",
+        "summary": (
+            "Deep operational guide for Tavily web search as the suite's discovery primitive."
+        ),
         "use_when": [
-            "You want an in-depth explanation of what search does, when it should be first, and how it hands off to extract.",
+            "You want an in-depth explanation of what search does, when it should be first, "
+            "and how it hands off to extract.",
             "You need a discovery-specific system prompt rather than the general router.",
         ],
         "avoid_when": [
@@ -114,7 +135,8 @@ _PROFILE_DATA: dict[str, dict[str, object]] = {
         "title": "Extract Tool Guide",
         "summary": "Deep operational guide for Tavily URL extraction and page-grounded synthesis.",
         "use_when": [
-            "You want a richer extract-specific prompt than the shorter extract-and-summarize profile.",
+            "You want a richer extract-specific prompt than the shorter "
+            "extract-and-summarize profile.",
             "You need guidance about page weighting, version conflicts, and URL-first discipline.",
         ],
         "avoid_when": [
@@ -145,7 +167,8 @@ _PROFILE_DATA: dict[str, dict[str, object]] = {
         "title": "Map Tool Guide",
         "summary": "Deep operational guide for Tavily site mapping and URL shortlisting.",
         "use_when": [
-            "You want a site-discovery-specific reference prompt rather than only the shorter site-discovery profile.",
+            "You want a site-discovery-specific reference prompt rather than only the "
+            "shorter site-discovery profile.",
             "You need stronger guidance on how map differs from crawl and extract.",
         ],
         "avoid_when": [
@@ -175,7 +198,8 @@ _PROFILE_DATA: dict[str, dict[str, object]] = {
         "title": "Crawl Tool Guide",
         "summary": "Deep operational guide for scoped multi-page site traversal and synthesis.",
         "use_when": [
-            "You need a stronger crawl-specific reference prompt than the shorter site-crawl profile.",
+            "You need a stronger crawl-specific reference prompt than the shorter "
+            "site-crawl profile.",
             "You want guidance on scope, synthesis, and crawl anti-patterns.",
         ],
         "avoid_when": [
@@ -203,9 +227,13 @@ _PROFILE_DATA: dict[str, dict[str, object]] = {
     },
     "tool-research": {
         "title": "Research Tool Guide",
-        "summary": "Deep operational guide for Tavily research jobs, objective framing, and report-shaped outputs.",
+        "summary": (
+            "Deep operational guide for Tavily research jobs, objective framing, "
+            "and report-shaped outputs."
+        ),
         "use_when": [
-            "You want a research-specific reference prompt with heavier emphasis on framing and deliverable shape.",
+            "You want a research-specific reference prompt with heavier emphasis on "
+            "framing and deliverable shape.",
             "You need to teach another agent what makes research worth using at all.",
         ],
         "avoid_when": [
@@ -220,7 +248,8 @@ _PROFILE_DATA: dict[str, dict[str, object]] = {
         "title": "Get Research Tool Guide",
         "summary": "Deep operational guide for retrieving and interpreting Tavily research jobs.",
         "use_when": [
-            "You need a separate explanation of research retrieval semantics and asynchronous workflow handling.",
+            "You need a separate explanation of research retrieval semantics and "
+            "asynchronous workflow handling.",
         ],
         "avoid_when": [
             "No research task has been created yet.",
@@ -254,7 +283,10 @@ _PROFILE_DATA: dict[str, dict[str, object]] = {
     },
     "synthesis-policy": {
         "title": "Synthesis Policy",
-        "summary": "Answer-shaping and grounding policy for turning Tavily retrieval into user-facing responses.",
+        "summary": (
+            "Answer-shaping and grounding policy for turning Tavily retrieval into "
+            "user-facing responses."
+        ),
         "use_when": [
             "You want a final-answer policy layer that sits above retrieval routing.",
             "You need stronger guardrails around inference, uncertainty, and conflicting sources.",
@@ -276,7 +308,10 @@ _PROFILE_DATA: dict[str, dict[str, object]] = {
     },
     "mcp-usage-guide": {
         "title": "MCP Usage Guide",
-        "summary": "Explains the server as an MCP product with tools, prompts, resources, namespacing, and templates.",
+        "summary": (
+            "Explains the server as an MCP product with tools, prompts, resources, "
+            "namespacing, and templates."
+        ),
         "use_when": [
             "You want client-facing guidance about how to consume the server through MCP.",
             "You need a product-level prompt about namespacing, resources, and discoverability.",

@@ -88,4 +88,4 @@ def get_settings() -> Settings:
         >>> callable(get_settings)
         True
     """
-    return Settings()
+    return Settings()  # type: ignore[call-arg]

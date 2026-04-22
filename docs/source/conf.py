@@ -16,7 +16,6 @@ release = "0.3.0"
 
 extensions = [
     "myst_parser",
-    "myst_nb",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
@@ -26,14 +25,16 @@ extensions = [
     "sphinx_inline_tabs",
     "sphinxcontrib.mermaid",
     "sphinx_autodoc_typehints",
-    "autodoc_pydantic",
+    "sphinxcontrib.autodoc_pydantic",
     "autoapi.extension",
     "sphinxext.opengraph",
-    "sphinx_sitemap",
     "notfound.extension",
     "sphinx_last_updated_by_git",
     "sphinx_reredirects",
 ]
+
+if os.environ.get("READTHEDOCS") == "True":
+    extensions.append("sphinx_sitemap")
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
@@ -46,7 +47,7 @@ html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "https://tavily-fastm
 autoapi_type = "python"
 autoapi_dirs = [str(SRC / "tavily_fastmcp")]
 autoapi_add_toctree_entry = False
-autoapi_keep_files = True
+autoapi_keep_files = False
 
 myst_enable_extensions = [
     "colon_fence",
@@ -54,7 +55,6 @@ myst_enable_extensions = [
     "fieldlist",
     "html_admonition",
     "html_image",
-    "linkify",
     "substitution",
     "tasklist",
 ]

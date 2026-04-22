@@ -25,7 +25,7 @@ jobs:
         run: pdm install -G docs
 
       - name: Build HTML docs
-        run: pdm run sphinx-build -b html docs/source docs/_build/html
+        run: make docs DOCS_OUTPUT=docs/_build/html
 
       - name: Upload docs artifact
         uses: actions/upload-artifact@v4

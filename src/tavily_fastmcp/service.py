@@ -38,6 +38,20 @@ from tavily_fastmcp.models import (
 )
 from tavily_fastmcp.settings import Settings
 
+_SEARCH_CONSTRUCTOR_FIELDS = frozenset(
+    {
+        "auto_parameters",
+        "country",
+        "exact_match",
+        "include_answer",
+        "include_favicon",
+        "include_image_descriptions",
+        "include_raw_content",
+        "include_usage",
+        "max_results",
+    }
+)
+
 
 class TavilyServiceProtocol(Protocol):
     """Protocol for Tavily operations used by the MCP server.
@@ -47,10 +61,14 @@ class TavilyServiceProtocol(Protocol):
         True
     """
 
-    def search_from_model(self, request: SearchRequest | None = None, **kwargs: Any) -> SearchResponse:
+    def search_from_model(
+        self, request: SearchRequest | None = None, **kwargs: Any
+    ) -> SearchResponse:
         """Execute a Tavily search request."""
 
-    def extract_from_model(self, request: ExtractRequest | None = None, **kwargs: Any) -> ExtractResponse:
+    def extract_from_model(
+        self, request: ExtractRequest | None = None, **kwargs: Any
+    ) -> ExtractResponse:
         """Execute a Tavily extract request."""
 
     def map_from_model(self, request: MapRequest | None = None, **kwargs: Any) -> MapResponse:
@@ -59,7 +77,9 @@ class TavilyServiceProtocol(Protocol):
     def crawl_from_model(self, request: CrawlRequest | None = None, **kwargs: Any) -> CrawlResponse:
         """Execute a Tavily crawl request."""
 
-    def research_from_model(self, request: ResearchRequest | None = None, **kwargs: Any) -> ResearchResponse:
+    def research_from_model(
+        self, request: ResearchRequest | None = None, **kwargs: Any
+    ) -> ResearchResponse:
         """Execute a Tavily research request."""
 
     def get_research_from_model(
@@ -90,6 +110,7 @@ class LangChainTavilyService:
     """
 
     def __init__(self, settings: Settings) -> None:
+        """Initialize LangChain Tavily tools from validated settings."""
         self.settings = settings
         try:
             from langchain_tavily import (
@@ -106,6 +127,7 @@ class LangChainTavilyService:
                 "Install the runtime dependencies first."
             ) from exc
 
+        self._search_tool_cls = TavilySearch
         self._search_tool = TavilySearch(
             max_results=5,
             topic=settings.default_search_topic,
@@ -140,7 +162,17 @@ class LangChainTavilyService:
         """
         model = request or SearchRequest(**kwargs)
         payload = model.model_dump(exclude_none=True)
-        raw = self._search_tool.invoke(payload)
+        search_tool_factory = getattr(self, "_search_tool_cls", None)
+        if search_tool_factory is not None:
+            constructor_payload = {
+                field: payload.pop(field)
+                for field in _SEARCH_CONSTRUCTOR_FIELDS
+                if field in payload
+            }
+            raw = search_tool_factory(**constructor_payload).invoke(payload)
+        else:
+            raw = self._search_tool.invoke(payload)
+        self._raise_if_error(raw)
         return self._normalize_search_response(raw)
 
     def extract_from_model(
@@ -151,18 +183,21 @@ class LangChainTavilyService:
         """Execute an extract request."""
         model = request or ExtractRequest(**kwargs)
         raw = self._extract_tool.invoke(model.model_dump(mode="json", exclude_none=True))
+        self._raise_if_error(raw)
         return self._normalize_extract_response(raw)
 
     def map_from_model(self, request: MapRequest | None = None, **kwargs: Any) -> MapResponse:
         """Execute a map request."""
         model = request or MapRequest(**kwargs)
         raw = self._map_tool.invoke(model.model_dump(mode="json", exclude_none=True))
+        self._raise_if_error(raw)
         return self._normalize_map_response(raw)
 
     def crawl_from_model(self, request: CrawlRequest | None = None, **kwargs: Any) -> CrawlResponse:
         """Execute a crawl request."""
         model = request or CrawlRequest(**kwargs)
         raw = self._crawl_tool.invoke(model.model_dump(mode="json", exclude_none=True))
+        self._raise_if_error(raw)
         return self._normalize_crawl_response(raw)
 
     def research_from_model(
@@ -173,6 +208,7 @@ class LangChainTavilyService:
         """Execute a research request."""
         model = request or ResearchRequest(**kwargs)
         raw = self._research_tool.invoke(model.model_dump(exclude_none=True))
+        self._raise_if_error(raw)
         return self._normalize_research_response(raw)
 
     def get_research_from_model(
@@ -183,7 +219,14 @@ class LangChainTavilyService:
         """Retrieve a research task."""
         model = request or GetResearchRequest(**kwargs)
         raw = self._get_research_tool.invoke(model.model_dump(exclude_none=True))
+        self._raise_if_error(raw)
         return self._normalize_research_response(raw)
+
+    @staticmethod
+    def _raise_if_error(raw: dict[str, Any]) -> None:
+        error = raw.get("error")
+        if error is not None:
+            raise RuntimeError(f"Tavily tool call failed: {error}")
 
     @staticmethod
     def _normalize_search_response(raw: dict[str, Any]) -> SearchResponse:

@@ -10,8 +10,9 @@ Design:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
+from tavily_fastmcp._typing import ToolRegistrar
 from tavily_fastmcp.models import ServerCatalog
 
 
@@ -26,11 +27,14 @@ def register_catalog_tool(mcp: Any, *, catalog: ServerCatalog, package_version: 
     Returns:
         ``None``.
     """
+    tool_server = cast(ToolRegistrar, mcp)
 
-    @mcp.tool(
+    @tool_server.tool(
         name="tavily.catalog",
         title="Tavily Catalog",
-        description="Return the structured server catalog that describes tools, resources, and prompts.",
+        description=(
+            "Return the structured server catalog that describes tools, resources, and prompts."
+        ),
         tags={"catalog", "server", "readonly"},
         annotations={
             "title": "Tavily Catalog",

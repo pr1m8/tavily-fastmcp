@@ -1,6 +1,6 @@
 # tavily-fastmcp
 
-[![CI](https://github.com/YOUR_GITHUB_USER/tavily-fastmcp/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_GITHUB_USER/tavily-fastmcp/actions/workflows/ci.yml)
+[![CI](https://github.com/pr1m8/tavily-fastmcp/actions/workflows/ci.yml/badge.svg)](https://github.com/pr1m8/tavily-fastmcp/actions/workflows/ci.yml)
 [![Docs](https://readthedocs.org/projects/tavily-fastmcp/badge/?version=latest)](https://tavily-fastmcp.readthedocs.io/en/latest/)
 [![PyPI](https://img.shields.io/pypi/v/tavily-fastmcp.svg)](https://pypi.org/project/tavily-fastmcp/)
 [![Python](https://img.shields.io/pypi/pyversions/tavily-fastmcp.svg)](https://pypi.org/project/tavily-fastmcp/)
@@ -53,6 +53,14 @@ Tavily uses the `TAVILY_API_KEY` environment variable. This package preserves th
 
 ```bash
 cp .env.example .env
+```
+
+Put real keys only in `.env`; it is ignored by Git. Keep `.env.example` as placeholders.
+
+To run the opt-in live smoke test:
+
+```bash
+make test-live
 ```
 
 ## Quick start
@@ -205,23 +213,54 @@ All tools use typed arguments, tags, annotations, titles, and custom metadata.
 
 ## Development
 
+Install everything:
+
 ```bash
 pdm install -G:all
+```
+
+Run the standard checks:
+
+```bash
+make lint
+make type
+make test
+make docs
+```
+
+Equivalent PDM commands:
+
+```bash
 pdm run ruff check .
 pdm run mypy src
 pdm run pytest
+pdm run sphinx-build -b html docs/source docs/source/_build/html
 ```
 
 ## Documentation
 
 ```bash
-pdm run sphinx-build -b html docs/source docs/source/_build/html
+make docs
 ```
 
-## Project status
+The documentation is grouped under:
 
-This scaffold is designed to be publishable and easy to extend, but you should still replace placeholder GitHub and Read the Docs URLs before release.
+- `docs/source/usage/`: MCP, direct Python, and LangChain usage.
+- `docs/source/guides/`: development, automation, and publishing workflows.
+- `docs/source/reference/`: configuration, tools, and profiles.
 
+## Publishing
+
+Publishing is intended to run through GitHub Releases and PyPI trusted publishing.
+Use the local publish gate before tagging:
+
+```bash
+make publish-check
+```
+
+Then create and push a version tag such as `v0.3.1`, publish the GitHub Release,
+and let the `Release` workflow upload distributions to PyPI. The local
+`make publish` target prints the release flow and does not upload packages.
 
 ## Automation
 

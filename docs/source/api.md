@@ -1,6 +1,7 @@
 # API Reference
 
-```{eval-rst}
-.. automodule:: tavily_fastmcp
-   :members:
+```{toctree}
+:maxdepth: 2
+
+autoapi/tavily_fastmcp/index
 ```
