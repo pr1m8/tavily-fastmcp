@@ -38,13 +38,25 @@ pdm add tavily-fastmcp
 For LangChain helpers:
 
 ```bash
-pdm add tavily-fastmcp[langchain]
+pdm add "tavily-fastmcp[langchain]"
+```
+
+For LangGraph workflows:
+
+```bash
+pdm add "tavily-fastmcp[langchain]" langgraph
+```
+
+With uv:
+
+```bash
+uv add "tavily-fastmcp[langchain]" langgraph
 ```
 
 For docs and development:
 
 ```bash
-pdm install -G:all
+pdm install -G :all
 ```
 
 ## Environment
@@ -186,6 +198,72 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+### Use Tavily tools inside a custom LangGraph
+
+Use LangGraph when you want explicit state transitions around the Tavily MCP
+tools, such as adding review, persistence, retries, or a human approval step.
+
+```python
+import asyncio
+
+from langchain_openai import ChatOpenAI
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langgraph.graph import START, MessagesState, StateGraph
+from langgraph.prebuilt import ToolNode, tools_condition
+
+
+async def main() -> None:
+    client = MultiServerMCPClient(
+        {
+            "tavily": {
+                "transport": "stdio",
+                "command": "python",
+                "args": ["-m", "tavily_fastmcp.server", "--transport", "stdio"],
+                "env": {"TAVILY_API_KEY": "tvly-your-key-here"},
+            }
+        }
+    )
+    tools = await client.get_tools()
+    model = ChatOpenAI(model="gpt-5").bind_tools(tools)
+
+    async def call_model(state: MessagesState) -> dict:
+        response = await model.ainvoke(state["messages"])
+        return {"messages": [response]}
+
+    graph_builder = StateGraph(MessagesState)
+    graph_builder.add_node("agent", call_model)
+    graph_builder.add_node("tools", ToolNode(tools))
+    graph_builder.add_edge(START, "agent")
+    graph_builder.add_conditional_edges("agent", tools_condition)
+    graph_builder.add_edge("tools", "agent")
+    graph = graph_builder.compile()
+
+    result = await graph.ainvoke(
+        {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "Map the FastMCP docs site and identify the pages about prompts.",
+                }
+            ]
+        }
+    )
+    print(result["messages"][-1].content)
+
+
+asyncio.run(main())
+```
+
+### Agent tool routing guide
+
+- Use `tavily.search` for broad discovery, current facts, and source finding.
+- Use `tavily.extract` after search when the agent needs page text from known URLs.
+- Use `tavily.map` to discover a site's URL structure before targeted extraction.
+- Use `tavily.crawl` when the agent must inspect multiple pages from one domain.
+- Use `tavily.research` for multi-source synthesized reports.
+- Use `tavily.catalog` and profile resources when an agent needs to learn the
+  available tools and prompt profiles before deciding how to route a task.
+
 ## Included profiles and prompts
 
 The package ships with large markdown prompts and reusable profiles for:
@@ -306,7 +384,7 @@ expansion so secrets stay outside Git:
 Install everything:
 
 ```bash
-pdm install -G:all
+pdm install -G :all
 ```
 
 Run the standard checks:
