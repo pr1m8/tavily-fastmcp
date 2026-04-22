@@ -6,8 +6,10 @@ publishing, not from a developer laptop.
 ## Release checklist
 
 1. Confirm repository URLs in `pyproject.toml`, `README.md`, and badge links.
-2. Confirm the PyPI project exists and trusted publishing is configured for the
-   `Release` workflow and `pypi` environment.
+2. Confirm the PyPI project exists and trusted publishing is configured for
+   repository `pr1m8/tavily-fastmcp` and workflow file `release.yml`. Leave the
+   PyPI environment field blank unless the workflow defines a GitHub
+   environment.
 3. Run the local publish gate:
 
    ```bash

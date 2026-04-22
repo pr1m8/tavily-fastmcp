@@ -252,6 +252,9 @@ The documentation is grouped under:
 ## Publishing
 
 Publishing is intended to run through GitHub Releases and PyPI trusted publishing.
+Configure the PyPI trusted publisher for repository `pr1m8/tavily-fastmcp` and
+workflow file `release.yml`; leave the environment field blank unless the
+workflow defines one.
 Use the local publish gate before tagging:
 
 ```bash
