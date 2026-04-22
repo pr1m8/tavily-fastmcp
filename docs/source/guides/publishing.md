@@ -7,9 +7,8 @@ publishing, not from a developer laptop.
 
 1. Confirm repository URLs in `pyproject.toml`, `README.md`, and badge links.
 2. Confirm the PyPI project exists and trusted publishing is configured for
-   repository `pr1m8/tavily-fastmcp` and workflow file `release.yml`. Leave the
-   PyPI environment field blank unless the workflow defines a GitHub
-   environment.
+   repository `pr1m8/tavily-fastmcp`, workflow file `release.yml`, and
+   environment `pypi`.
 3. If trusted publishing is not available yet, create a PyPI API token and save
    it as the GitHub repository secret `PYPI_API_TOKEN`. For the first upload of
    a brand-new PyPI project, this may need to be an account-scoped token. Rotate

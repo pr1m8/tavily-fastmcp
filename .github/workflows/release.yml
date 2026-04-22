@@ -45,6 +45,9 @@ jobs:
   publish-pypi:
     needs: build
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/tavily-fastmcp
     env:
       PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 
