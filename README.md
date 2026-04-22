@@ -345,9 +345,11 @@ Publishing is intended to run through GitHub Releases and PyPI trusted publishin
 Configure the PyPI trusted publisher for repository `pr1m8/tavily-fastmcp` and
 workflow file `release.yml`; leave the environment field blank unless the
 workflow defines one.
-If PyPI trusted publishing is not ready yet, add a project-scoped token as the
-GitHub secret `PYPI_API_TOKEN`; the release workflow will use it before falling
-back to OIDC.
+If PyPI trusted publishing is not ready yet, add a PyPI API token as the GitHub
+secret `PYPI_API_TOKEN`; the release workflow will use it before falling back to
+OIDC. For the first upload of a brand-new PyPI project, this may need to be an
+account-scoped token. Rotate it to a project-scoped token after the project
+exists.
 Use the local publish gate before tagging:
 
 ```bash

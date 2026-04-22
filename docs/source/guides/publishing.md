@@ -10,10 +10,11 @@ publishing, not from a developer laptop.
    repository `pr1m8/tavily-fastmcp` and workflow file `release.yml`. Leave the
    PyPI environment field blank unless the workflow defines a GitHub
    environment.
-3. If trusted publishing is not available yet, create a project-scoped PyPI API
-   token and save it as the GitHub repository secret `PYPI_API_TOKEN`. The
-   release workflow uses this token first when present, then falls back to
-   trusted publishing.
+3. If trusted publishing is not available yet, create a PyPI API token and save
+   it as the GitHub repository secret `PYPI_API_TOKEN`. For the first upload of
+   a brand-new PyPI project, this may need to be an account-scoped token. Rotate
+   it to a project-scoped token after the project exists. The release workflow
+   uses this token first when present, then falls back to trusted publishing.
 4. Run the local publish gate:
 
    ```bash
