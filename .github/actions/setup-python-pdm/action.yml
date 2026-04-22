@@ -18,3 +18,11 @@ runs:
         python-version: ${{ inputs.python-version }}
         version: "2.26.7"
         cache: true
+
+    - name: Install uv
+      shell: bash
+      run: python -m pip install --upgrade uv
+
+    - name: Enable PDM uv resolver
+      shell: bash
+      run: pdm config use_uv true
